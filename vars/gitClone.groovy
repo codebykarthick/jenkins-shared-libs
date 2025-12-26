@@ -21,7 +21,7 @@ def call(Map config = [:]) {
     // Set defaults
     def url = config.url
     def branch = config.branch ?: 'main'
-    def credentialsId = config.credentialsId ?: null
+    def credentialsId = config.credentialsId ?: 'codebykarthick'
     def directory = config.directory ?: extractRepoName(url)
     def shallow = config.shallow ?: false
     def depth = config.depth ?: 1
@@ -29,6 +29,7 @@ def call(Map config = [:]) {
     echo "Cloning repository: ${url}"
     echo "Branch/Tag: ${branch}"
     echo "Target directory: ${directory}"
+    echo "Using credentialsId: ${credentialsId}"
 
     def cloneExtensions = []
 
