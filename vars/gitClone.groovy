@@ -5,7 +5,7 @@
  *   gitClone(
  *       url: 'https://github.com/org/repo.git',
  *       branch: 'main',                    // optional, default: 'main'
- *       credentialsId: 'git-credentials',  // optional
+ *       credentialsId: 'git-credentials',  // optional, default: 'codebykarthick'
  *       directory: 'repo',                 // optional, default: repo name
  *       shallow: true,                     // optional, default: false
  *       depth: 1                           // optional, used with shallow
