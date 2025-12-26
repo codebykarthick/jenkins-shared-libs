@@ -5,7 +5,7 @@
  *   gitClone(
  *       url: 'https://github.com/org/repo.git',
  *       branch: 'main',                    // optional, default: 'main'
- *       credentialsId: 'git-credentials',  // optional, default: 'codebykarthick'
+ *       credentialsId: 'git-credentials',  // optional, default: '00014358-b348-4510-9b1d-ef81722ba034'
  *       directory: 'repo',                 // optional, default: repo name
  *       shallow: true,                     // optional, default: false
  *       depth: 1                           // optional, used with shallow
@@ -21,7 +21,7 @@ def call(Map config = [:]) {
     // Set defaults
     def url = config.url
     def branch = config.branch ?: 'main'
-    def credentialsId = config.credentialsId ?: 'codebykarthick'
+    def credentialsId = config.credentialsId ?: '00014358-b348-4510-9b1d-ef81722ba034'
     def directory = config.directory ?: extractRepoName(url)
     def shallow = config.shallow ?: false
     def depth = config.depth ?: 1
