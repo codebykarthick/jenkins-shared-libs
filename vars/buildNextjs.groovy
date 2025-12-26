@@ -11,7 +11,10 @@
  *       buildCommand: 'build',           // optional, default: 'build'
  *       testCommand: 'test',             // optional, default: 'test'
  *       installArgs: '',                 // optional, additional install args
- *       envVars: [:]                     // optional, environment variables
+ *       envVars: [:],                    // optional, environment variables
+ *       useDocker: true,                 // optional, default: true - run in Docker container
+ *       dockerImage: '',                 // optional, custom Docker image (default: node:<version>-alpine)
+ *       dockerArgs: ''                   // optional, additional docker run arguments
  *   )
  */
 
@@ -26,17 +29,41 @@ def call(Map config = [:]) {
     def testCommand = config.testCommand ?: 'test'
     def installArgs = config.installArgs ?: ''
     def envVars = config.envVars ?: [:]
+    def useDocker = config.useDocker != false
+    def dockerImage = config.dockerImage ?: "node:${nodeVersion}-alpine"
+    def dockerArgs = config.dockerArgs ?: ''
 
     echo "Building Next.js application"
     echo "Directory: ${directory}"
     echo "Node version: ${nodeVersion}"
     echo "Package manager: ${packageManager}"
+    echo "Using Docker: ${useDocker}"
 
     dir(directory) {
-        // Set up Node.js environment
-        def nodeHome = tool name: "NodeJS-${nodeVersion}", type: 'nodejs'
+        if (useDocker) {
+            echo "Running build in Docker container: ${dockerImage}"
+            runInDocker(dockerImage, dockerArgs, packageManager, runLint, runTests, buildCommand, testCommand, installArgs, envVars)
+        } else {
+            runOnController(nodeVersion, packageManager, runLint, runTests, buildCommand, testCommand, installArgs, envVars)
+        }
+    }
 
-        withEnv(["PATH+NODE=${nodeHome}/bin"] + envVars.collect { k, v -> "${k}=${v}" }) {
+    echo "Next.js build completed successfully"
+}
+
+/**
+ * Run build steps inside a Docker container
+ */
+private void runInDocker(String dockerImage, String dockerArgs, String packageManager, boolean runLint, boolean runTests, String buildCommand, String testCommand, String installArgs, Map envVars) {
+    def envList = envVars.collect { k, v -> "${k}=${v}" }
+
+    docker.image(dockerImage).inside(dockerArgs) {
+        withEnv(envList) {
+            // Install pnpm if needed (not included in node image by default)
+            if (packageManager == 'pnpm') {
+                sh 'npm install -g pnpm'
+            }
+
             // Install dependencies
             stage('Install Dependencies') {
                 echo "Installing dependencies with ${packageManager}..."
@@ -85,8 +112,63 @@ def call(Map config = [:]) {
             }
         }
     }
+}
 
-    echo "Next.js build completed successfully"
+/**
+ * Run build steps on the Jenkins controller (legacy mode)
+ */
+private void runOnController(String nodeVersion, String packageManager, boolean runLint, boolean runTests, String buildCommand, String testCommand, String installArgs, Map envVars) {
+    // Set up Node.js environment using Jenkins tool
+    def nodeHome = tool name: "NodeJS-${nodeVersion}", type: 'nodejs'
+
+    withEnv(["PATH+NODE=${nodeHome}/bin"] + envVars.collect { k, v -> "${k}=${v}" }) {
+        // Install dependencies
+        stage('Install Dependencies') {
+            echo "Installing dependencies with ${packageManager}..."
+            switch (packageManager) {
+                case 'yarn':
+                    sh "yarn install ${installArgs}"
+                    break
+                case 'pnpm':
+                    sh "pnpm install ${installArgs}"
+                    break
+                default:
+                    sh "npm ci ${installArgs}"
+                    break
+            }
+        }
+
+        // Run linting
+        if (runLint) {
+            stage('Lint') {
+                echo "Running linter..."
+                try {
+                    runPackageScript(packageManager, 'lint')
+                } catch (Exception e) {
+                    echo "Warning: Linting failed or lint script not found"
+                }
+            }
+        }
+
+        // Run tests
+        if (runTests) {
+            stage('Test') {
+                echo "Running tests..."
+                try {
+                    runPackageScript(packageManager, testCommand)
+                } catch (Exception e) {
+                    echo "Warning: Tests failed or test script not found"
+                    throw e
+                }
+            }
+        }
+
+        // Build the application
+        stage('Build') {
+            echo "Building Next.js application..."
+            runPackageScript(packageManager, buildCommand)
+        }
+    }
 }
 
 /**
