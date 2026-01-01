@@ -122,8 +122,11 @@ private void buildWithCompose(Map config) {
         echo "Services: ${services.join(', ')}"
     }
 
+    sh 'pwd'
+    sh 'ls -la'
+
     // Build the docker-compose command
-    def composeCmd = "docker compose -f docker-compose.yml build"
+    def composeCmd = "docker compose -f ${composeFile} build"
 
     if (noCache) {
         composeCmd += " --no-cache"
