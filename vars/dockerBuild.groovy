@@ -112,7 +112,6 @@ private void buildWithCompose(Map config) {
     def composeFile = config.composeFile
     def services = config.services ?: []
     def noCache = config.noCache ?: false
-    def pull = config.pull != false
 
     if (!fileExists(composeFile)) {
         error "dockerBuild: Compose file '${composeFile}' not found"
@@ -128,9 +127,6 @@ private void buildWithCompose(Map config) {
 
     if (noCache) {
         composeCmd += " --no-cache"
-    }
-    if (pull) {
-        composeCmd += " --pull"
     }
 
     // Add specific services if provided
