@@ -123,7 +123,7 @@ private void buildWithCompose(Map config) {
     }
 
     // Build the docker-compose command
-    def composeCmd = "docker compose -f ${composeFile} build"
+    def composeCmd = "docker compose -f docker-compose.yml build"
 
     if (noCache) {
         composeCmd += " --no-cache"
